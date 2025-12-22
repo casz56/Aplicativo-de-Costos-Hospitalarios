@@ -1,0 +1,608 @@
+/* =========================================================
+   VISOR COSTOS (Web) - Tema "Power BI" (v3.2)
+   Objetivo: replicar colores, sombras, biseles y textura
+   ========================================================= */
+
+:root{
+  --indigo-900:#22225c;
+  --indigo-800:#2b2b73;
+  --indigo-700:#34348a;
+  --indigo-600:#3f3fb0;
+
+  --bg:#eef1f6;
+  --paper:#ffffff;
+  --stroke:#c9cdd8;
+
+  --shadow-1: 0 6px 16px rgba(0,0,0,.18);
+  --shadow-2: 0 12px 26px rgba(0,0,0,.22);
+  --inset-1: inset 0 1px 0 rgba(255,255,255,.65);
+
+  --danger:#c84b55;
+  --danger-2:#b33a44;
+
+  --ok:#3aa35a;
+  --ok-2:#2f8c4b;
+
+  --kpi-blue:#2a2a74;
+  --kpi-red:#c64b55;
+  --kpi-green:#3aa35a;
+
+  --radius-lg:16px;
+  --radius-md:12px;
+  --radius-sm:10px;
+
+  --font: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family:var(--font);
+  color:#1c2330;
+  background:
+    radial-gradient(1200px 600px at 70% -20%, rgba(63,63,176,.15), transparent 60%),
+    radial-gradient(900px 500px at 15% 15%, rgba(58,163,90,.12), transparent 60%),
+    linear-gradient(180deg, #f5f7fb 0%, var(--bg) 100%);
+  position:relative;
+}
+
+/* textura suave (tipo Power BI) */
+body:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    repeating-linear-gradient(60deg, rgba(0,0,0,.018) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(-60deg, rgba(0,0,0,.014) 0 1px, transparent 1px 26px);
+  mix-blend-mode:multiply;
+  opacity:.35;
+}
+
+/* =================== TOPBAR =================== */
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:10;
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  background:linear-gradient(90deg, #3b8f87 0%, #2c2c74 55%, #2a2a74 100%);
+  box-shadow: 0 10px 22px rgba(0,0,0,.28);
+  border-bottom: 1px solid rgba(255,255,255,.18);
+}
+
+.brand{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  min-width: 270px;
+}
+.brand__logo{
+  width:44px; height:44px;
+  display:grid; place-items:center;
+  border-radius: 14px;
+  background: rgba(255,255,255,.16);
+  color:#fff;
+  font-weight:900;
+  letter-spacing:.5px;
+  box-shadow: var(--inset-1);
+  border:1px solid rgba(255,255,255,.22);
+}
+.brand__title{
+  color:#fff;
+  font-weight:900;
+  letter-spacing:.5px;
+  font-size:18px;
+  line-height:1.1;
+}
+.brand__subtitle{
+  color:rgba(255,255,255,.85);
+  font-weight:600;
+  font-size:12px;
+}
+
+/* Tabs estilo "pestaña" con bisel */
+.tabs{
+  display:flex;
+  gap:10px;
+  flex:1;
+  overflow:auto;
+  padding-bottom:2px;
+}
+.tab{
+  appearance:none;
+  border: 2px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.16);
+  color:#fff;
+  padding:10px 14px;
+  border-radius: 14px;
+  font-weight:900;
+  letter-spacing:.3px;
+  cursor:pointer;
+  white-space:nowrap;
+  box-shadow: var(--inset-1);
+  transition: transform .08s ease, background .2s ease, border-color .2s ease;
+}
+.tab:hover{ transform: translateY(-1px); background: rgba(255,255,255,.22); }
+.tab.is-active{
+  background: rgba(255,255,255,.92);
+  color: var(--indigo-900);
+  border-color: rgba(0,0,0,.08);
+  box-shadow: 0 10px 18px rgba(0,0,0,.22);
+}
+
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.btn{
+  appearance:none;
+  border: 2px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.14);
+  color:#fff;
+  padding:10px 14px;
+  border-radius: 14px;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow: var(--inset-1);
+  transition: transform .08s ease, background .2s ease;
+}
+.btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.22); }
+.btn-danger{
+  border-color: rgba(255,255,255,.25);
+  background: linear-gradient(180deg, var(--danger) 0%, var(--danger-2) 100%);
+  box-shadow: 0 10px 18px rgba(0,0,0,.22);
+}
+
+/* =================== LAYOUT =================== */
+.layout{
+  display:grid;
+  grid-template-columns: 390px 1fr;
+  gap:16px;
+  padding:14px;
+  align-items:start;
+}
+
+.sidebar{
+  position:sticky;
+  top:86px;
+  align-self:start;
+}
+
+.content{
+  min-width: 0;
+}
+
+/* =================== CARDS =================== */
+.card{
+  background: rgba(255,255,255,.70);
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  overflow:hidden;
+  margin-bottom: 14px;
+}
+.card__header{
+  background: linear-gradient(180deg, var(--indigo-800) 0%, var(--indigo-900) 100%);
+  color:#fff;
+  font-weight:900;
+  letter-spacing:.4px;
+  padding:10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+.card__body{ padding:12px; }
+.muted{ color:#556070; font-weight:600; }
+.mini{ font-size:12px; }
+
+/* botones secundarios (contenedor histórico) */
+.vault-actions{ display:flex; flex-wrap:wrap; gap:8px; }
+.btn2{
+  border: 2px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.92);
+  padding:8px 10px;
+  border-radius: 12px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:900;
+  color: var(--indigo-900);
+  box-shadow: 0 8px 14px rgba(0,0,0,.16), var(--inset-1);
+  transition: transform .08s ease;
+}
+.btn2:hover{ transform: translateY(-1px); }
+.btn2-danger{
+  color:#fff;
+  border-color: rgba(0,0,0,.08);
+  background: linear-gradient(180deg, var(--danger) 0%, var(--danger-2) 100%);
+}
+.btn2-file{ position:relative; overflow:hidden; display:inline-flex; align-items:center; }
+.btn2-file input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+.vault-list{ margin-top:10px; border-top:1px dashed rgba(0,0,0,.18); padding-top:10px; }
+.vault-list__title{ font-size:12px; font-weight:900; color: var(--indigo-900); margin-bottom:6px; }
+.vault-list__items{ font-size:12px; line-height:1.35; max-height:120px; overflow:auto; }
+
+/* =================== FILTERS =================== */
+.filters .field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-bottom:10px;
+}
+.filters .field span{
+  font-weight:900;
+  color: var(--indigo-900);
+  font-size:12px;
+  letter-spacing:.2px;
+}
+input[type="text"], select, input[type="file"]{
+  border:2px solid rgba(0,0,0,.10);
+  border-radius: 12px;
+  padding:10px 10px;
+  background: rgba(255,255,255,.92);
+  box-shadow: var(--inset-1);
+  outline:none;
+  font-weight:700;
+}
+select{ padding:8px 10px; }
+.hint{ font-size:12px; color:#566173; font-weight:700; }
+
+/* =================== VIEWS / GRID =================== */
+.view{ display:none; }
+.view.is-active{ display:block; }
+
+.grid{
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap:14px;
+}
+
+.kpi{
+  grid-column: span 4;
+  background: rgba(255,255,255,.92);
+  border: 2px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+  box-shadow: var(--shadow-1);
+  overflow:hidden;
+  position:relative;
+}
+.kpi::before{
+  content:"";
+  position:absolute;
+  left:0; right:0; top:0;
+  height: 38px;
+  background: linear-gradient(180deg, var(--kpi-blue) 0%, var(--indigo-900) 100%);
+}
+.view[data-view="resultados"] .kpi:nth-child(2)::before{ background: linear-gradient(180deg, var(--kpi-red) 0%, #9c3a41 100%); }
+.view[data-view="resultados"] .kpi:nth-child(3)::before{ background: linear-gradient(180deg, var(--kpi-green) 0%, var(--ok-2) 100%); }
+
+.kpi__label{
+  position:relative;
+  padding:10px 14px 6px;
+  color:#fff;
+  font-weight:900;
+  letter-spacing:.3px;
+  font-size:13px;
+}
+.kpi__value{
+  padding:10px 14px 14px;
+  font-size:28px;
+  font-weight:900;
+  color:#1a2230;
+}
+
+/* =================== PANELS =================== */
+.panel{
+  background: rgba(255,255,255,.92);
+  border: 2px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+  box-shadow: var(--shadow-2);
+  overflow:hidden;
+  position:relative;
+}
+.panel__title{
+  background: linear-gradient(180deg, var(--indigo-800) 0%, var(--indigo-900) 100%);
+  color:#fff;
+  font-weight:900;
+  padding:10px 12px;
+  letter-spacing:.25px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
+.panel canvas{
+  display:block;
+  width:100% !important;
+  height: auto !important;
+  padding: 10px 12px 14px;
+}
+
+.col-12{ grid-column: span 12; }
+.col-8{ grid-column: span 8; }
+.col-6{ grid-column: span 6; }
+.col-4{ grid-column: span 4; }
+
+.table-wrap{ padding: 10px 12px 14px; }
+.table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:12px;
+}
+.table thead th{
+  position:sticky;
+  top:0;
+  background: #f0f2f8;
+  border-bottom:2px solid rgba(0,0,0,.10);
+  text-align:left;
+  padding:10px;
+  font-weight:900;
+  color: var(--indigo-900);
+}
+.table td{
+  padding:9px 10px;
+  border-bottom:1px solid rgba(0,0,0,.07);
+  font-weight:650;
+}
+.table tbody tr:hover{ background: rgba(63,63,176,.06); }
+
+/* =================== MENU VIEW =================== */
+.menu-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap:14px;
+  margin-bottom:16px;
+}
+.menu-tile{
+  border:2px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+  background: rgba(255,255,255,.92);
+  padding:18px;
+  font-weight:1000;
+  color: var(--indigo-900);
+  letter-spacing:.3px;
+  cursor:pointer;
+  box-shadow: var(--shadow-1), var(--inset-1);
+  transition: transform .08s ease;
+}
+.menu-tile:hover{ transform: translateY(-1px); }
+
+.empty-state{
+  background: rgba(255,255,255,.78);
+  border:1px dashed rgba(0,0,0,.18);
+  border-radius: 14px;
+  padding:18px;
+  box-shadow: 0 10px 18px rgba(0,0,0,.16);
+}
+.empty-state h2{ margin:0 0 6px; color: var(--indigo-900); }
+.empty-state p{ margin:0; font-weight:700; color:#4e5a6a; }
+
+/* =================== COMPARATIVO =================== */
+.cmp-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(380px, 1fr));
+  gap:14px;
+  padding: 12px;
+}
+.cmp-card{
+  border:2px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+  overflow:hidden;
+  box-shadow: var(--shadow-2);
+  background: rgba(255,255,255,.92);
+}
+.cmp-card__head{
+  background: linear-gradient(180deg, var(--indigo-800) 0%, var(--indigo-900) 100%);
+  color:#fff;
+  font-weight:900;
+  padding:10px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.cmp-card__body{ padding:10px 12px 14px; }
+.cmp-kpis{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:10px;
+  margin-bottom:10px;
+}
+.cmp-kpi{
+  border:2px solid rgba(0,0,0,.10);
+  border-radius: 12px;
+  padding:10px;
+  box-shadow: var(--inset-1);
+  background: #f8f9fd;
+}
+.cmp-kpi .l{ font-size:11px; font-weight:900; color: var(--indigo-900); }
+.cmp-kpi .v{ font-size:16px; font-weight:1000; }
+.cmp-card canvas{ height:240px !important; padding:0; }
+
+/* =================== FOOTER =================== */
+.footer{
+  padding: 10px 14px;
+  color:#fff;
+  background: linear-gradient(90deg, #2c2c74 0%, #2b2b73 50%, #3b8f87 100%);
+  border-top: 1px solid rgba(255,255,255,.12);
+  display:flex;
+  justify-content:space-between;
+  font-weight:800;
+  box-shadow: 0 -10px 18px rgba(0,0,0,.18);
+}
+
+/* responsive */
+@media (max-width: 1200px){
+  .layout{ grid-template-columns: 1fr; }
+  .sidebar{ position:relative; top:auto; }
+  .content{ min-width: auto; }
+  .kpi{ grid-column: span 12; }
+  .col-8,.col-6,.col-4{ grid-column: span 12; }
+  .cmp-grid{ grid-template-columns: 1fr; }
+}
+
+
+/* =================== AUTO SCALE / AUTO SIZE (v3.3) =================== */
+/* Fluido: el contenido escala al ancho disponible, sin cortes */
+.content{ width:100%; }
+
+/* Paneles con altura automática pero consistente; canvas ocupa el alto disponible */
+.panel{ display:flex; flex-direction:column; }
+.panel__title{ flex:0 0 auto; }
+.panel canvas{
+  flex:1 1 auto;
+  height:auto !important;          /* evita altura fija */
+  min-height: 200px;               /* base armónica */
+  max-height: 340px;
+  padding: 10px 12px 14px;
+}
+
+/* KPIs más elásticos en pantallas pequeñas */
+.kpi__value{
+  font-size: clamp(20px, 2.1vw, 30px);
+}
+
+/* Grids responsivos: evita desbordes horizontales */
+.grid{ width:100%; }
+.tabs{ scrollbar-width: thin; }
+.table-wrap{ overflow:auto; }
+
+/* Comparativo: tarjetas se adaptan */
+.cmp-grid{ padding: 12px; }
+.cmp-card canvas{ height:auto !important; min-height: 220px; max-height: 380px; }
+
+/* Sidebar no debe forzar scroll horizontal */
+.sidebar{ min-width: 0; }
+
+/* ===== Logo institucional (HUHMP) ===== */
+.brand__logo-img{
+  height:52px;
+  max-width:180px;
+  object-fit:contain;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.35));
+}
+.brand__text{ display:flex; flex-direction:column; line-height:1.15; }
+@media (max-width: 900px){
+  .brand__logo-img{ height:44px; max-width:140px; }
+}
+
+/* =================== AJUSTE PROPORCIONAL DE GRÁFICOS (v3.4.2) =================== */
+/* Objetivo: gráficos más compactos y armónicos (sin ocupar demasiado alto) */
+.panel canvas{
+  min-height: 200px !important;
+  max-height: 340px !important;
+}
+
+/* Donuts/pies suelen verse bien más pequeños */
+.panel[data-chart="donut"] canvas,
+.panel.donut canvas,
+.panel.pie canvas{
+  min-height: 180px !important;
+  max-height: 260px !important;
+}
+
+/* Comparativo: más compacto */
+.cmp-card canvas{
+  min-height: 180px !important;
+  max-height: 280px !important;
+}
+
+/* Tablas: más aire arriba y control de altura */
+.table-wrap{ max-height: 320px; overflow:auto; }
+
+/* Reduce el espaciado vertical general */
+.grid{ gap:12px; }
+.layout{ gap:14px; }
+
+/* =================== COMPARATIVO: TORTAS TIPO POWER BI (v3.4.3) =================== */
+.cmp-charts{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap:12px;
+}
+@media (max-width: 1200px){
+  .cmp-charts{ grid-template-columns: 1fr; }
+}
+.cmp-chartbox{
+  border:2px solid rgba(0,0,0,.10);
+  border-radius: 12px;
+  background:#fff;
+  box-shadow: var(--inset-1);
+  overflow:hidden;
+}
+.cmp-chartbox__title{
+  background: rgba(42,42,116,.12);
+  color: #1a1a3f;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+.cmp-chartbox__canvas{
+  padding: 8px 10px 10px;
+  height: 220px;
+}
+.cmp-chartbox__canvas canvas{
+  width: 100% !important;
+  height: 100% !important;
+}
+.cmp-note{
+  display:block;
+  padding: 0 10px 10px;
+  font-size: 11px;
+  color: rgba(0,0,0,.65);
+}
+
+
+/* =========================================================
+   MENÚ (solo layout MENU) - Panel histórico interactivo
+   ========================================================= */
+.is-hidden{ display:none !important; }
+
+.menu-only-panel .card{
+  border: 1px solid rgba(255,255,255,.18);
+  background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.92) 100%);
+  box-shadow: 0 14px 30px rgba(0,0,0,.18);
+  overflow:hidden;
+}
+
+.menu-only-panel .card__header{
+  background: linear-gradient(180deg, var(--indigo-900) 0%, var(--indigo-700) 100%);
+  color:#fff;
+  letter-spacing:.08em;
+  font-weight:900;
+  position:relative;
+}
+
+.menu-only-panel .card__header::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: radial-gradient(600px 120px at 30% -10%, rgba(250,204,21,.35), transparent 60%);
+  pointer-events:none;
+}
+
+.menu-only-panel .vault-actions .btn2{
+  border-radius: 14px;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+
+.menu-only-panel .vault-actions .btn2:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(0,0,0,.18), var(--inset-1);
+  filter: saturate(1.08);
+}
+
+.menu-only-panel .mini{
+  border-radius: 14px;
+  border: 1px dashed rgba(34,34,92,.25);
+  background: linear-gradient(180deg, rgba(34,34,92,.04), rgba(250,204,21,.08));
+}
+
+.menu-only-panel .vault-list{
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.06);
+  background: rgba(255,255,255,.72);
+}

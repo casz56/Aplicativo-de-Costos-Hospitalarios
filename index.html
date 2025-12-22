@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visor de Costos - HUHMP</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+    <img src="assets/logo-huhmp-blanco.png" alt="Hospital Universitario Hernando Moncaleano Perdomo" class="brand__logo-img" />
+      <div class="brand__logo" aria-hidden="true">HU</div>
+      <div class="brand__text">
+        <div class="brand__title">VISOR COSTOS</div>
+        <div class="brand__subtitle">Histórico 2020–2033 • Migración Power BI → Web</div>
+    </div>
+  </div>
+
+    <nav class="tabs" role="navigation" aria-label="Menú">
+      <button class="tab is-active" data-route="menu">MENÚ</button>
+      <button class="tab" data-route="resultados">E.RESULTADOS COSTOS</button>
+      <button class="tab" data-route="uf">COSTOS X UF</button>
+      <button class="tab" data-route="comparativo">COMPARATIVO POR VIGENCIAS</button>
+      <button class="tab" data-route="indicadores">INDICADORES SOSTENIBILIDAD</button>
+    </nav>
+
+    <div class="top-actions">
+      <button id="btnReset" class="btn btn-danger" title="Borrar todas las segmentaciones">Borrar segmentaciones</button>
+      <button id="btnExportPDF" class="btn" title="Exportar vista actual a PDF">PDF</button>
+      <button id="btnExportXLSX" class="btn" title="Exportar vista actual a Excel">Excel</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div id="menuOnlyPanel" class="menu-only-panel">
+      <div class="card">
+        <div class="card__header">CONTENEDOR HISTÓRICO (2020–2033)</div>
+        <div class="card__body">
+          <p class="muted">
+            Este contenedor guarda en tu navegador la data ya procesada (canónica) por vigencia/mes/centro.
+            Ideal para ir acumulando reportes y construir el histórico completo.
+          </p>
+
+          <div class="vault-actions">
+            <button class="btn2" id="btnVaultLoad" title="Cargar histórico desde el contenedor">Cargar histórico</button>
+            <button class="btn2" id="btnVaultExport" title="Exportar histórico a archivo JSON">Exportar histórico</button>
+            <label class="btn2 btn2-file" title="Importar histórico desde JSON">
+              Importar histórico
+              <input id="vaultImportInput" type="file" accept=".json" />
+            </label>
+            <button class="btn2 btn2-danger" id="btnVaultClear" title="Borrar todo el histórico guardado">Borrar histórico</button>
+          </div>
+
+          <div class="mini">
+            <div><b>Estado histórico:</b> <span id="vaultStatus">No cargado</span></div>
+            <div><b>Registros históricos:</b> <span id="vaultRows">0</span></div>
+            <div><b>Vigencias:</b> <span id="vaultYears">—</span></div>
+          </div>
+
+          <div class="vault-list">
+            <div class="vault-list__title">Fuentes guardadas</div>
+            <div id="vaultFiles" class="vault-list__items muted">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__header">CARGA DE ARCHIVOS</div>
+        <div class="card__body">
+          <p class="muted">
+            Carga reportes (ej. <b>rptCostListResultOperation</b>) o el esquema anterior.
+            Al terminar la carga puedes guardarlos al histórico.
+          </p>
+          <input id="fileInput" type="file" multiple accept=".xlsx,.xls" />
+          <div class="vault-actions" style="margin-top:10px">
+            <button class="btn2" id="btnSaveToVault" title="Guardar la data cargada al contenedor histórico">Guardar al histórico</button>
+            <button class="btn2" id="btnUseSessionOnly" title="Usar la data cargada solo en la sesión (sin guardar)">Solo sesión</button>
+          </div>
+          <div class="mini">
+            <div><b>Estado:</b> <span id="dataStatus">Sin datos</span></div>
+            <div><b>Registros en sesión:</b> <span id="rowsSession">0</span></div>
+          </div>
+        </div>
+      </div>
+
+            </div>
+
+      <div class="card">
+        <div class="card__header">FILTROS</div>
+        <div class="card__body filters">
+          <label class="field">
+            <span>Centro de costo (código o nombre)</span>
+            <input id="fCentroCosto" type="text" placeholder="Buscar..." />
+          </label>
+
+          <label class="field">
+            <span>Vigencia</span>
+            <select id="fVigencia" multiple size="7"></select>
+          </label>
+
+          <label class="field">
+            <span>Mes</span>
+            <select id="fMes" multiple size="7"></select>
+          </label>
+
+          <label class="field">
+            <span>Unidad funcional</span>
+            <select id="fUF" multiple size="7"></select>
+          </label>
+
+          <div class="hint">* Multi-selección: Ctrl/⌘ + click</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__header">FUENTE</div>
+        <div class="card__body">
+          <div class="muted">
+            Módulo de costos - INDIGO VIE ERP<br/>
+            Visor original: Power BI • Migración a Web
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="content">
+      <section class="view is-active" data-view="menu">
+        <div class="menu-grid">
+          <button class="menu-tile" data-route="resultados">E.RESULTADOS COSTOS</button>
+          <button class="menu-tile" data-route="uf">COSTOS X UF</button>
+          <button class="menu-tile" data-route="comparativo">COMPARATIVO POR VIGENCIAS</button>
+          <button class="menu-tile" data-route="indicadores">INDICADORES SOSTENIBILIDAD</button>
+        </div>
+
+        <div class="empty-state">
+          <h2>Modo histórico</h2>
+          <p>
+            1) Carga el histórico desde el contenedor (izquierda) o sube archivos.<br/>
+            2) Guarda al histórico para acumular vigencias 2020–2033.<br/>
+            3) Navega por los módulos y exporta.
+          </p>
+        </div>
+      </section>
+
+      <section class="view" data-view="resultados">
+        <div class="grid">
+          <div class="kpi"><div class="kpi__label">FACTURACIÓN</div><div class="kpi__value" id="kpiFacturacion">$0</div></div>
+          <div class="kpi"><div class="kpi__label">COSTO TOTAL</div><div class="kpi__value" id="kpiCosto">$0</div></div>
+          <div class="kpi"><div class="kpi__label">UTILIDAD</div><div class="kpi__value" id="kpiUtilidad">$0</div></div>
+
+          <div class="panel col-8"><div class="panel__title">Estado de resultado por mes</div><canvas id="chartResultadoMes"></canvas></div>
+          <div class="panel col-4"><div class="panel__title">Costo total vs Utilidad</div><canvas id="chartCostoVsUtilidad"></canvas></div>
+          <div class="panel col-6"><div class="panel__title">Directos vs Indirectos</div><canvas id="chartDirInd"></canvas></div>
+          <div class="panel col-6"><div class="panel__title">Composición del costo (clases)</div><canvas id="chartClases"></canvas></div>
+
+          <div class="panel col-12">
+            <div class="panel__title">Detalle (top 50 centros por costo total)</div>
+            <div class="table-wrap">
+              <table class="table" id="tblResultados">
+                <thead><tr><th>C.C.</th><th>Centro</th><th>UF</th><th>Facturado</th><th>Costo</th><th>Utilidad</th><th>% Sos</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" data-view="uf">
+        <div class="grid">
+          <div class="kpi"><div class="kpi__label">COSTO TOTAL</div><div class="kpi__value" id="kpiUfTotal">$0</div></div>
+          <div class="kpi"><div class="kpi__label">DIRECTOS</div><div class="kpi__value" id="kpiUfDirecto">$0</div></div>
+          <div class="kpi"><div class="kpi__label">INDIRECTOS</div><div class="kpi__value" id="kpiUfIndirecto">$0</div></div>
+
+          <div class="panel col-6"><div class="panel__title">Participación por UF (costo total)</div><canvas id="chartUfPart"></canvas></div>
+          <div class="panel col-6"><div class="panel__title">Costos totales por mes</div><canvas id="chartUfMes"></canvas></div>
+
+          <div class="panel col-12">
+            <div class="panel__title">Tabla (top 50 UF por costo total)</div>
+            <div class="table-wrap">
+              <table class="table" id="tblUF">
+                <thead><tr><th>UF</th><th>Costo total</th><th>Directos</th><th>Indirectos</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" data-view="comparativo">
+        <div class="grid">
+          <div class="panel col-12">
+            <div class="panel__title">Comparativo por vigencias (KPIs + tendencia)</div>
+            <div id="cmpContainer" class="cmp-grid"></div>
+            <div class="muted mini">* Se construye con vigencias del histórico/sesión.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" data-view="indicadores">
+        <div class="grid">
+          <div class="kpi"><div class="kpi__label">% SOSTENIBILIDAD (PROM)</div><div class="kpi__value" id="kpiSosAvg">0%</div></div>
+          <div class="kpi"><div class="kpi__label">% SOSTENIBILIDAD (MIN)</div><div class="kpi__value" id="kpiSosMin">0%</div></div>
+          <div class="kpi"><div class="kpi__label">% SOSTENIBILIDAD (MAX)</div><div class="kpi__value" id="kpiSosMax">0%</div></div>
+
+          <div class="panel col-8"><div class="panel__title">% sostenibilidad por mes</div><canvas id="chartSosMes"></canvas></div>
+          <div class="panel col-4"><div class="panel__title">Distribución % sostenibilidad</div><canvas id="chartSosDist"></canvas></div>
+
+          <div class="panel col-12">
+            <div class="panel__title">Detalle (top 50 centros por peor sostenibilidad)</div>
+            <div class="table-wrap">
+              <table class="table" id="tblSos">
+                <thead><tr><th>C.C.</th><th>Centro</th><th>UF</th><th>% Sos (prom)</th><th>Facturado</th><th>Costo</th><th>Utilidad</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>HUHMP • Visor de Costos (Web)</span>
+    <span class="muted">Histórico local (IndexedDB) • HTML/CSS/JS</span>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
