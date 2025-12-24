@@ -16,6 +16,83 @@ const store = {
 
 const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
+
+// --- Catálogo CC → UF / Centro (merge institucional) ---
+const CC_CATALOG = {
+  "133": { uf: "300 - SERVICIOS AMBULATORIOS", centro: "133 - PROGRAMA MADRE CANGURO" },
+  "201": { uf: "200 - URGENCIAS", centro: "201 - URGENCIAS, CONSULTAS Y PROCEDIMIENTOS" },
+  "202": { uf: "200 - URGENCIAS", centro: "202 - URGENCIAS OBSERVACION ADULTOS" },
+  "203": { uf: "200 - URGENCIAS", centro: "203 - URGENCIAS OBSERVACION PEDIATRIA" },
+  "301": { uf: "300 - SERVICIOS AMBULATORIOS", centro: "301 - CONSULTA EXTERNA" },
+  "401": { uf: "400 - HOSPITALIZACIÓN", centro: "401 - HOSPITALIZACION CIRUGIA" },
+  "402": { uf: "400 - HOSPITALIZACIÓN", centro: "402 - HOSPITALIZACION GINECOBSTETRICIA" },
+  "403": { uf: "400 - HOSPITALIZACIÓN", centro: "403 - HOSPITALIZACION MEDICINA INTERNA" },
+  "404": { uf: "400 - HOSPITALIZACIÓN", centro: "404 - HOSPITALIZACION NEUROCIRUGIA" },
+  "406": { uf: "400 -1 - UCI", centro: "406 - CUIDADO INTENSIVO NEONATAL" },
+  "407": { uf: "400 - HOSPITALIZACIÓN", centro: "407 - HOSPITALIZACION PEDIATRIA" },
+  "408": { uf: "400 - HOSPITALIZACIÓN", centro: "408 - HOSPITALIZACION SALUD MENTAL" },
+  "409": { uf: "400 - HOSPITALIZACIÓN", centro: "409 - HOSPITALIZACION SEPTIMO PISO - VIP" },
+  "410": { uf: "400 -1 - UCI", centro: "410 - CUIDADO INTENSIVO ADULTO" },
+  "411": { uf: "400 -1 - UCI", centro: "411 - CUIDADO INTENSIVO PEDIATRICO" },
+  "415": { uf: "400 -1 - UCI", centro: "415 - CUIDADO INTENSIVO OBSTETRICO" },
+  "416": { uf: "400 - HOSPITALIZACIÓN", centro: "416 - HOSPITALIZACION ONCOLOGIA" },
+  "501": { uf: "500 - QUIRÓFANOS", centro: "501 - QUIROFANOS" },
+  "502": { uf: "500 - QUIRÓFANOS", centro: "502 - SALA DE PARTOS" },
+  "503": { uf: "500 - QUIRÓFANOS", centro: "503 - UNIDAD DE TRASPLANTES" },
+  "601": { uf: "600 - APOYO DIAGNOSTICO", centro: "601 - CARDIOLOGIA" },
+  "602": { uf: "600 - APOYO DIAGNOSTICO", centro: "602 - IMAGENOLOGIA" },
+  "603": { uf: "600 - APOYO DIAGNOSTICO", centro: "603 - LABORATORIO CLINICO" },
+  "604": { uf: "600 - APOYO DIAGNOSTICO", centro: "604 - NEUMOLOGIA" },
+  "605": { uf: "600 - APOYO DIAGNOSTICO", centro: "605 - ANATOMIA PATOLOGICA" },
+  "606": { uf: "600 - APOYO DIAGNOSTICO", centro: "606 - ENDOSCOPIAS" },
+  "607": { uf: "700 - APOYO TERAPÉUTICO", centro: "607 - CARDIOVASCULAR" },
+  "608": { uf: "600 - APOYO DIAGNOSTICO", centro: "608 - RESONANCIA MAGNETICA NUCLEAR (RMN)" },
+  "701": { uf: "700 - APOYO TERAPÉUTICO", centro: "701 - BANCO DE SANGRE" },
+  "703": { uf: "600 - APOYO DIAGNOSTICO", centro: "703 - NEUROFISIOLOGIA" },
+  "902": { uf: "700 - APOYO TERAPÉUTICO", centro: "902 - UNIDAD RENAL" },
+  "903": { uf: "700 - APOYO TERAPÉUTICO", centro: "903 - UNIDAD CANCEROLOGIA" },
+  "904": { uf: "SERVICIOS CONEXOS", centro: "904 - TRANSPORTE AMBULANCIA" },
+  "913": { uf: "SERVICIOS CONEXOS", centro: "913 - INGRESOS NO OPERATIVOS" },
+};
+
+function ccKeyFromAny(v){
+  if(v===null || v===undefined) return "";
+  const s = String(v).trim();
+  if(!s) return "";
+  const m = s.match(/\d{3,4}/);
+  return m ? m[0] : "";
+}
+function enrichRowWithCatalog(row){
+  try{
+    const k = ccKeyFromAny(row.cc) || ccKeyFromAny(row.centro);
+    if(!k) return row;
+    const ref = CC_CATALOG[k];
+    if(!ref) return row;
+    if(!row.uf || String(row.uf).trim()==="" || String(row.uf).trim().toLowerCase()==="sin uf"){
+      row.uf = ref.uf;
+    }
+    if(!row.centro || String(row.centro).trim()===""){
+      row.centro = ref.centro;
+    }
+    // normaliza CC como número string
+    if(!row.cc || String(row.cc).trim()===""){
+      row.cc = k;
+    }
+    return row;
+  }catch(_){ return row; }
+}
+function ufFromCC(cc, fallback="Sin UF"){
+  const k = ccKeyFromAny(cc);
+  const ref = k ? CC_CATALOG[k] : null;
+  return ref ? ref.uf : fallback;
+}
+function centroFromCC(cc, fallback=""){
+  const k = ccKeyFromAny(cc);
+  const ref = k ? CC_CATALOG[k] : null;
+  return ref ? ref.centro : fallback;
+}
+
+
 // --- AutoSize global (Chart.js) ---
 if (window.Chart) {
   Chart.defaults.responsive = true;
@@ -68,6 +145,44 @@ const DB_VERSION = 1;
 const STORE_ROWS = "costos_mes";
 const STORE_FILES = "sources";
 
+
+// ---------- Respaldo en localStorage (fallback persistente) ----------
+// Útil cuando IndexedDB está restringido (políticas corporativas / perfiles bloqueados / orígenes especiales)
+const LS_VAULT_BACKUP_KEY = "HUHMP_COSTOS_VAULT_BACKUP_V1";
+
+function vaultBackupWrite(){
+  try{
+    const payload = {
+      savedAt: new Date().toISOString(),
+      version: "v1",
+      rows: (store && store.canonical && store.canonical.costosMes) ? store.canonical.costosMes : [],
+      sources: (store && store.vault && store.vault.files) ? store.vault.files : []
+    };
+    localStorage.setItem(LS_VAULT_BACKUP_KEY, JSON.stringify(payload));
+    return true;
+  }catch(e){
+    console.warn("[VaultBackup] No se pudo escribir en localStorage", e);
+    return false;
+  }
+}
+function vaultBackupRead(){
+  try{
+    const raw = localStorage.getItem(LS_VAULT_BACKUP_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(parsed && Array.isArray(parsed.rows)) return parsed;
+    return null;
+  }catch(e){
+    console.warn("[VaultBackup] No se pudo leer localStorage", e);
+    return null;
+  }
+}
+function vaultBackupClear(){
+  try{ localStorage.removeItem(LS_VAULT_BACKUP_KEY); }catch(_){}
+}
+// ---------- /Respaldo en localStorage ----------
+
+
 function openDB(){
   return new Promise((resolve, reject)=>{
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -93,7 +208,22 @@ function makeRowId(r){
 }
 
 async function vaultLoad(){
-  const db = await openDB();
+  let db = null;
+  try{
+    db = await openDB();
+  }catch(err){
+    console.warn('[Vault] IndexedDB no disponible, usando respaldo localStorage', err);
+    const backup = vaultBackupRead();
+    const rows = (backup && Array.isArray(backup.rows)) ? backup.rows.map(r=>enrichRowWithCatalog({ ...r })) : [];
+    const files = (backup && Array.isArray(backup.sources)) ? backup.sources.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')) : [];
+    store.canonical.costosMes = rows;
+    store.vault.files = files;
+    store.vault.loaded = rows.length>0;
+    updateVaultUI();
+    populateFilterCatalogs();
+    render();
+    return;
+  }
   const rows = await new Promise((resolve)=>{
     const out=[]; const req = tx(db, STORE_ROWS).openCursor();
     req.onsuccess = (e)=>{ const cur=e.target.result; if(cur){ out.push(cur.value); cur.continue(); } else resolve(out); };
@@ -104,72 +234,119 @@ async function vaultLoad(){
     req.onsuccess = (e)=>{ const cur=e.target.result; if(cur){ out.push(cur.value); cur.continue(); } else resolve(out); };
     req.onerror = ()=> resolve([]);
   });
-  store.canonical.costosMes = rows.map(r=>({ ...r }));
+// Si el histórico quedó vacío pero existe respaldo localStorage, úsalo como fuente.
+const backup = vaultBackupRead();
+if((!rows || !rows.length) && backup && Array.isArray(backup.rows) && backup.rows.length){
+  rows.splice(0, rows.length, ...backup.rows);
+}
+if((!files || !files.length) && backup && Array.isArray(backup.sources) && backup.sources.length){
+  files.splice(0, files.length, ...backup.sources);
+}
+store.canonical.costosMes = rows.map(r=>enrichRowWithCatalog({ ...r }));
+
   store.vault.files = files.sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
   store.vault.loaded = true;
+  vaultBackupWrite();
   updateVaultUI();
   populateFilterCatalogs();
   render();
 }
 
 async function vaultSaveRows(rows, sourceMeta){
-  if(!rows.length) return { inserted:0, updated:0 };
-  const db = await openDB();
+  // Guarda en IndexedDB cuando esté disponible.
+  // Si IndexedDB está bloqueado (muy común en ejecuciones file:// o políticas corporativas),
+  // hacemos persistencia completa usando localStorage (vaultBackup*) como fuente de verdad.
+  if(!rows.length) return { inserted:0, updated:0, mode:"noop" };
 
-  const map = new Map(store.canonical.costosMes.map(r=>[r.id, r]));
+  const map = new Map((store.canonical.costosMes||[]).map(r=>[r.id, r]));
   let inserted=0, updated=0;
 
-  await new Promise((resolve, reject)=>{
-    const tr = db.transaction(STORE_ROWS, "readwrite");
-    const os = tr.objectStore(STORE_ROWS);
-    for(const r0 of rows){
-      const r = { ...r0 };
-      r.id = r.id || makeRowId(r);
-      if(map.has(r.id)) updated++; else inserted++;
-      map.set(r.id, r);
-      os.put(r);
-    }
-    tr.oncomplete = resolve;
-    tr.onerror = ()=> reject(tr.error);
+  // Pre-merge en memoria (sirve tanto para IDB como para fallback)
+  const merged = rows.map(r0=>{
+    const r = enrichRowWithCatalog({ ...r0 });
+    r.id = r.id || makeRowId(r);
+    if(map.has(r.id)) updated++; else inserted++;
+    map.set(r.id, r);
+    return r;
   });
 
-  if(sourceMeta){
-    const meta = {
-      id: sourceMeta.id || crypto.randomUUID(),
-      filename: sourceMeta.filename || "Archivo",
-      detectedType: sourceMeta.detectedType || "auto",
-      createdAt: sourceMeta.createdAt || new Date().toISOString(),
-      rows: rows.length,
-      years: Array.from(new Set(rows.map(r=>String(r.vigencia||"")))).sort()
-    };
+  // Intento IndexedDB
+  let db = null;
+  try{ db = await openDB(); }catch(err){
+    console.warn('[Vault] No se pudo abrir IndexedDB. Persistiendo en localStorage.', err);
+  }
+
+  if(db){
     await new Promise((resolve, reject)=>{
-      const tr = db.transaction(STORE_FILES, "readwrite");
-      tr.objectStore(STORE_FILES).put(meta);
+      const tr = db.transaction(STORE_ROWS, "readwrite");
+      const os = tr.objectStore(STORE_ROWS);
+      for(const r of merged){
+        os.put(r);
+      }
+      tr.oncomplete = resolve;
+      tr.onerror = ()=> reject(tr.error);
+    });
+
+    if(sourceMeta){
+      const meta = {
+        id: sourceMeta.id || crypto.randomUUID(),
+        filename: sourceMeta.filename || "Archivo",
+        detectedType: sourceMeta.detectedType || "auto",
+        createdAt: sourceMeta.createdAt || new Date().toISOString(),
+        rows: rows.length,
+        years: Array.from(new Set(rows.map(r=>String(r.vigencia||"")))).sort()
+      };
+      await new Promise((resolve, reject)=>{
+        const tr = db.transaction(STORE_FILES, "readwrite");
+        tr.objectStore(STORE_FILES).put(meta);
+        tr.oncomplete = resolve;
+        tr.onerror = ()=> reject(tr.error);
+      });
+    }
+  }else{
+    // Fallback: mantenemos un catálogo de "sources" simple
+    if(sourceMeta){
+      const meta = {
+        id: sourceMeta.id || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now())),
+        filename: sourceMeta.filename || "Archivo",
+        detectedType: sourceMeta.detectedType || "auto",
+        createdAt: sourceMeta.createdAt || new Date().toISOString(),
+        rows: rows.length,
+        years: Array.from(new Set(rows.map(r=>String(r.vigencia||"")))).sort()
+      };
+      store.vault.files = [meta, ...(store.vault.files||[])].slice(0,200);
+    }
+  }
+
+  // Actualiza estado in-memory y persiste backup SIEMPRE
+  store.canonical.costosMes = Array.from(map.values());
+  store.vault.loaded = true;
+  vaultBackupWrite();
+  updateVaultUI();
+  populateFilterCatalogs();
+  render();
+  return { inserted, updated, mode: db ? "indexeddb" : "localstorage" };
+}
+
+async function vaultClear(){
+  // Intenta borrar IndexedDB; si falla, igual limpia el respaldo localStorage
+  let db = null;
+  try{ db = await openDB(); }catch(err){
+    console.warn('[Vault] No se pudo abrir IndexedDB para borrar. Limpiando respaldo localStorage.', err);
+  }
+  if(db){
+    await new Promise((resolve, reject)=>{
+      const tr = db.transaction([STORE_ROWS, STORE_FILES], "readwrite");
+      tr.objectStore(STORE_ROWS).clear();
+      tr.objectStore(STORE_FILES).clear();
       tr.oncomplete = resolve;
       tr.onerror = ()=> reject(tr.error);
     });
   }
-
-  store.canonical.costosMes = Array.from(map.values());
-  store.vault.loaded = true;
-  updateVaultUI();
-  populateFilterCatalogs();
-  render();
-  return { inserted, updated };
-}
-
-async function vaultClear(){
-  const db = await openDB();
-  await new Promise((resolve, reject)=>{
-    const tr = db.transaction([STORE_ROWS, STORE_FILES], "readwrite");
-    tr.objectStore(STORE_ROWS).clear();
-    tr.objectStore(STORE_FILES).clear();
-    tr.oncomplete = resolve;
-    tr.onerror = ()=> reject(tr.error);
-  });
   store.canonical.costosMes = [];
   store.vault.files = [];
   store.vault.loaded = false;
+  vaultBackupClear();
   updateVaultUI();
   populateFilterCatalogs();
   render();
@@ -298,6 +475,13 @@ function renderResultados(){
   for(const r of rows){
     const k=r.mes; if(!byMes.has(k)) byMes.set(k,{mes:k,fact:0,costo:0,util:0});
     const x=byMes.get(k); x.fact+=Number(r.facturado||0); x.costo+=Number(r.costo_total||0); x.util+=Number(r.utilidad||0);
+    x.mo+=Number(r.mano_obra||0);
+    x.gg+=Number(r.gastos_generales||0);
+    x.disp+=Number(r.dispensacion||0);
+    x.cons+=Number(r.consumo||0);
+    x.af+=Number(r.activos_fijos||0);
+    x.adm+=Number(r.administrativo||0);
+    x.log+=Number(r.logistico||0);
   }
   const series=Array.from(byMes.values()).sort((a,b)=>monthIndex(a.mes)-monthIndex(b.mes));
 
@@ -338,20 +522,110 @@ function renderResultados(){
   const byCC=new Map();
   for(const r of rows){
     const k=`${r.cc}||${r.centro}||${r.uf||"Sin UF"}`;
-    if(!byCC.has(k)) byCC.set(k,{cc:r.cc,centro:r.centro,uf:r.uf||"Sin UF",fact:0,costo:0,util:0,sosVals:[]});
+    if(!byCC.has(k)) byCC.set(k,{cc:r.cc,centro:r.centro,uf:r.uf||"Sin UF",fact:0,costo:0,util:0,sosVals:[],mo:0,gg:0,disp:0,cons:0,af:0,adm:0,log:0});
     const x=byCC.get(k);
     x.fact+=Number(r.facturado||0); x.costo+=Number(r.costo_total||0); x.util+=Number(r.utilidad||0);
+    x.mo+=Number(r.mano_obra||0);
+    x.gg+=Number(r.gastos_generales||0);
+    x.disp+=Number(r.dispensacion||0);
+    x.cons+=Number(r.consumo||0);
+    x.af+=Number(r.activos_fijos||0);
+    x.adm+=Number(r.administrativo||0);
+    x.log+=Number(r.logistico||0);
     if(r.sos!==null&&r.sos!==undefined&&!isNaN(Number(r.sos))) x.sosVals.push(Number(r.sos));
   }
   const tbl=Array.from(byCC.values()).sort((a,b)=>b.costo-a.costo).slice(0,50);
-  const tbody=$("#tblResultados tbody"); tbody.innerHTML="";
+
+// ---- Tabla E.RESULTADOS: estructura por clases + % Sostenibilidad + % Margen ----
+const table=$("#tblResultados");
+if(table){
+  // Encabezado: exactamente como estructura solicitada
+  const thead=table.querySelector("thead") || table.createTHead();
+  thead.innerHTML="";
+  const trh=document.createElement("tr");
+  const headers=[
+    "Centro de Costos",
+    "Gastos Generales",
+    "Consumo",
+    "Activos Fijos",
+    "Dispensación",
+    "Administrativo",
+    "Logístico",
+    "Costo Total",
+    "Facturación",
+    "Utilidad",
+    "% Sostenibilidad",
+    "% Margen"
+  ];
+  for(const h of headers){
+    const th=document.createElement("th");
+    th.textContent=h;
+    th.style.textAlign = (h==="Centro de Costos" ? "left" : "right");
+    trh.appendChild(th);
+  }
+  thead.appendChild(trh);
+
+  const tbody=table.querySelector("tbody") || table.createTBody();
+  tbody.innerHTML="";
+
   for(const r of tbl){
-    const sosAvg=r.sosVals.length?(r.sosVals.reduce((a,b)=>a+b,0)/r.sosVals.length):null;
+    // Recalcular con base en la estructura financiera solicitada (evita columnas en blanco / inconsistencias)
+    const gg  = Number(r.gg||0);
+    const cons= Number(r.cons||0);
+    const af  = Number(r.af||0);
+    const disp= Number(r.disp||0);
+    const adm = Number(r.adm||0);
+    const log = Number(r.log||0);
+
+    const costoTotal = gg + cons + af + disp + adm + log;
+
+    const facturacion = Number(r.fact||0);
+    const utilidad = facturacion - costoTotal;
+
+    // Formulas solicitadas:
+    const sostenibilidad = facturacion ? (utilidad / facturacion) : 0; // utilidad / facturación
+    const margen = costoTotal ? (utilidad / costoTotal) : 0;          // utilidad / costo total
+
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${r.cc??""}</td><td>${escapeHtml(r.centro??"")}</td><td>${escapeHtml(r.uf??"")}</td>
-      <td>${formatCOP(r.fact)}</td><td>${formatCOP(r.costo)}</td><td>${formatCOP(r.util)}</td><td>${sosAvg===null?"":pct(sosAvg)}</td>`;
+    const ccLabel = (r.cc??"") ? `${r.cc} - ${r.centro||""}` : (r.centro||"");
+
+    const cells=[
+      {v: escapeHtml(ccLabel), align:"left", bold:true},
+      {v: formatCOP(gg), align:"right"},
+      {v: formatCOP(cons), align:"right"},
+      {v: formatCOP(af), align:"right"},
+      {v: formatCOP(disp), align:"right"},
+      {v: formatCOP(adm), align:"right"},
+      {v: formatCOP(log), align:"right"},
+      {v: formatCOP(costoTotal), align:"right", bold:true},
+      {v: formatCOP(facturacion), align:"right"},
+      {v: formatCOP(utilidad), align:"right", util:true},
+      {v: pct(sostenibilidad), align:"right", pct:true, val:sostenibilidad},
+      {v: pct(margen), align:"right", pct:true, val:margen},
+    ];
+
+    tr.innerHTML = cells.map(c=>{
+      const style=[];
+      style.push(`text-align:${c.align}`);
+      if(c.bold) style.push("font-weight:800");
+      let extra="";
+      if(c.util){
+        const color = utilidad<0 ? "#EC268F" : (utilidad>0 ? "#008041" : "#0f172a");
+        extra += `color:${color};font-weight:900;`;
+      }
+      if(c.pct){
+        const v=Number(c.val||0);
+        const color = v<0 ? "#EC268F" : (v>0 ? "#008041" : "#0f172a");
+        extra += `color:${color};font-weight:800;`;
+      }
+      style.push(extra);
+      return `<td style="${"".concat(...style)}">${c.v}</td>`;
+    }).join("");
+
     tbody.appendChild(tr);
   }
+}
+// ---- /Tabla E.RESULTADOS ----
 }
 
 function renderUF(){
@@ -539,6 +813,13 @@ function renderIndicadores(){
     const k=`${r.cc}||${r.centro}||${r.uf||"Sin UF"}`;
     if(!byCC.has(k)) byCC.set(k,{cc:r.cc,centro:r.centro,uf:r.uf||"Sin UF",sosVals:[],fact:0,costo:0,util:0});
     const x=byCC.get(k); x.sosVals.push(Number(r.sos)); x.fact+=Number(r.facturado||0); x.costo+=Number(r.costo_total||0); x.util+=Number(r.utilidad||0);
+    x.mo+=Number(r.mano_obra||0);
+    x.gg+=Number(r.gastos_generales||0);
+    x.disp+=Number(r.dispensacion||0);
+    x.cons+=Number(r.consumo||0);
+    x.af+=Number(r.activos_fijos||0);
+    x.adm+=Number(r.administrativo||0);
+    x.log+=Number(r.logistico||0);
   }
   const list=Array.from(byCC.values()).map(x=>({ ...x, sosAvg:x.sosVals.reduce((a,b)=>a+b,0)/x.sosVals.length }))
     .sort((a,b)=>a.sosAvg-b.sosAvg).slice(0,50);
@@ -561,7 +842,50 @@ function render(){
 }
 
 /* ---------- Loader Excel: autodetección (reusa v2) ---------- */
-function toNumber(v){ const n=Number(v); return isNaN(n)?0:n; }
+
+function normKeyHU(s){
+  const str = String(s||"").trim().toLowerCase();
+  // remove accents
+  const noAcc = str.normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  return noAcc.replace(/[^a-z0-9]+/g," ").trim().replace(/\s+/g," ");
+}
+
+function toNumber(v){
+  if(v===null||v===undefined) return 0;
+  if(typeof v==="number"){
+    return isFinite(v)?v:0;
+  }
+  // Handle strings like "$ 32.873.651,12" or "32.873.651,12" or "(1.234,56)"
+  let s=String(v).trim();
+  if(!s) return 0;
+  // negative parentheses
+  let neg=false;
+  if(s.startsWith("(") && s.endsWith(")")){ neg=true; s=s.slice(1,-1); }
+  // remove currency symbols and spaces
+  s=s.replace(/[^0-9,.-]/g,"");
+  // If it looks like Colombian format (thousands '.' and decimal ',')
+  // remove thousands separators and convert decimal comma to dot
+  const hasComma=s.includes(","); 
+  const hasDot=s.includes(".");
+  if(hasComma){
+    // remove all dots as thousand separators
+    s=s.replace(/\./g,"");
+    // replace last comma with dot (decimal)
+    const lastComma=s.lastIndexOf(",");
+    s=s.slice(0,lastComma).replace(/,/g,"") + "." + s.slice(lastComma+1);
+  }else{
+    // no comma: if multiple dots, keep last as decimal, remove others
+    const parts=s.split(".");
+    if(parts.length>2){
+      const dec=parts.pop();
+      s=parts.join("") + "." + dec;
+    }
+  }
+  let n=parseFloat(s);
+  if(isNaN(n)) n=0;
+  if(neg) n=-n;
+  return n;
+}
 function normalizeMonthName(m){
   const s=String(m||"").trim().toLowerCase();
   for(const name of MONTHS){
@@ -569,6 +893,15 @@ function normalizeMonthName(m){
     if(s===name) return name;
   }
   return s;
+}
+
+function pickColKey(col, keys){
+  for (const k of keys){
+    const kk = normKeyHU(k);
+    if (col[kk] !== undefined) return kk;
+  }
+  // fallback: try raw keys as-is after normalization to handle edge cases
+  return normKeyHU(keys[0]);
 }
 function parseReport_rptCostListResultOperation(wb){
   const ws=wb.Sheets[wb.SheetNames[0]];
@@ -591,7 +924,7 @@ function parseReport_rptCostListResultOperation(wb){
       col={};
       for(let j=0;j<r.length;j++){
         const v=r[j];
-        if(typeof v==="string") col[v.trim().toLowerCase()]=j;
+        if(typeof v==="string") col[normKeyHU(v)]=j;
       }
       continue;
     }
@@ -604,8 +937,8 @@ function parseReport_rptCostListResultOperation(wb){
         const disp=toNumber(get(r,col["dispensacion"]));
         const cons=toNumber(get(r,col["consumo"]));
         const primaria=toNumber(get(r,col["primaria"]));
-        const administrativo=toNumber(get(r,col["administrativo"]));
-        const logistico=toNumber(get(r,col["logistico"]));
+        const administrativo=toNumber(get(r, col[pickColKey(col, ["administrativo","administracion","adm"])]));
+        const logistico=toNumber(get(r, col[pickColKey(col, ["logistico","logistica"])]));
         const total=toNumber(get(r,col["total"]));
         const facturado=toNumber(get(r,col["facturado"]));
         const utilidad=toNumber(get(r,col["utilidad"]));
@@ -615,11 +948,14 @@ function parseReport_rptCostListResultOperation(wb){
         if(idx===null) idx=r.length-1;
         const v=get(r,idx); const sos=isNaN(Number(v))?null:Number(v);
 
-        const row={vigencia:currentYear||"", mes:name, uf:"Sin UF", cc:currentCC, centro:currentCentro,
+        // Incluimos explícitamente Administrativo y Logístico para que el layout E (Resultados)
+        // pueda mostrarlos por columna (antes se estaban perdiendo y quedaban en $0).
+        const row={vigencia:currentYear||"", mes:name, uf: ufFromCC(currentCC, "Sin UF"), cc:currentCC, centro: (currentCentro||centroFromCC(currentCC,"")),
           gastos_generales:gg, mano_obra:mo, activos_fijos:af, dispensacion:disp, consumo:cons,
+          administrativo, logistico,
           directos:primaria, indirectos:administrativo+logistico, costo_total:total, facturado, utilidad, sos};
         row.id=makeRowId(row);
-        out.push(row);
+        out.push(enrichRowWithCatalog(row));
       }
     }
   }
@@ -911,3 +1247,234 @@ function wireEvents(){
 wireEvents();
 setRoute("menu");
 vaultLoad().catch(()=>{});
+
+
+
+// ===== FAB AYUDA (Manual + Paso a paso) =====
+(function(){
+  function initHelpFab(){
+    const fab = document.getElementById("fabHelp");
+    const modal = document.getElementById("helpModal");
+    if(!fab || !modal) return false;
+
+    const open = () => { modal.classList.remove("hidden"); document.body.style.overflow = "hidden"; };
+    const close = () => { modal.classList.add("hidden"); document.body.style.overflow = ""; };
+
+    // Evitar doble binding
+    if(fab.dataset.bound === "1") return true;
+    fab.dataset.bound = "1";
+
+    fab.addEventListener("click", open);
+    modal.querySelectorAll("[data-help-close]").forEach(el => el.addEventListener("click", close));
+    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && !modal.classList.contains("hidden")) close(); });
+
+    // Tabs
+    const tabs = Array.from(modal.querySelectorAll("[data-help-tab]"));
+    const panes = Array.from(modal.querySelectorAll("[data-help-pane]"));
+
+    function setTab(name){
+      tabs.forEach(t=>{
+        const active = t.getAttribute("data-help-tab") === name;
+        t.classList.toggle("is-active", active);
+        t.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      panes.forEach(p=>{
+        const show = p.getAttribute("data-help-pane") === name;
+        p.classList.toggle("hidden", !show);
+      });
+    }
+    tabs.forEach(t => t.addEventListener("click", ()=> setTab(t.getAttribute("data-help-tab"))));
+    setTab("manual");
+    return true;
+  }
+
+  function boot(){
+    if(initHelpFab()) return;
+    // Reintento por si el HTML se inyecta después
+    let tries = 0;
+    const t = setInterval(()=>{
+      tries++;
+      if(initHelpFab() || tries >= 20) clearInterval(t);
+    }, 150);
+  }
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", boot);
+  }else{
+    boot();
+  }
+})();
+// ===== /FAB AYUDA =====
+
+
+
+// =================== HISTÓRICO PERSISTENTE (HUHMP) ===================
+const HIST_KEY__HUHMP_COSTOS = "HUHMP_COSTOS_HISTORICO_V2";
+
+/** Intenta obtener la data canónica actual (la que alimenta gráficos/tablas). */
+function getCanonicalForSave(){
+  // 1) variables comunes
+  const candidates = [
+    window.__canonicalData,
+    window.canonicalData,
+    window.canonData,
+    window.dataCanonica,
+    window.canonica,
+    window.DATA_CANONICA,
+  ];
+  for(const c of candidates){
+    if(Array.isArray(c) && c.length) return c;
+  }
+  // 2) state objects (si existen)
+  try{
+    if(window.state){
+      if(Array.isArray(window.state.canonica) && window.state.canonica.length) return window.state.canonica;
+      if(Array.isArray(window.state.canonical) && window.state.canonical.length) return window.state.canonical;
+      if(Array.isArray(window.state.rowsCanonicas) && window.state.rowsCanonicas.length) return window.state.rowsCanonicas;
+      if(Array.isArray(window.state.sessionCanon) && window.state.sessionCanon.length) return window.state.sessionCanon;
+    }
+  }catch(_){}
+  // 3) fallback: data en sesión (si manejas un contenedor)
+  try{
+    if(window.__session && Array.isArray(window.__session.rows) && window.__session.rows.length) return window.__session.rows;
+  }catch(_){}
+  return null;
+}
+
+function historicoSave(rows){
+  if(!Array.isArray(rows) || !rows.length) return false;
+  try{
+    const payload = { savedAt: new Date().toISOString(), rows };
+    localStorage.setItem(HIST_KEY__HUHMP_COSTOS, JSON.stringify(payload));
+    return true;
+  }catch(e){
+    console.error("[Historico] No se pudo guardar en localStorage", e);
+    return false;
+  }
+}
+
+function historicoLoad(){
+  try{
+    const raw = localStorage.getItem(HIST_KEY__HUHMP_COSTOS);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(parsed && Array.isArray(parsed.rows) && parsed.rows.length) return parsed;
+    return null;
+  }catch(e){
+    console.error("[Historico] No se pudo leer histórico", e);
+    return null;
+  }
+}
+
+function historicoClear(){
+  try{ localStorage.removeItem(HIST_KEY__HUHMP_COSTOS); }catch(_){}
+}
+
+function updateHistoricoUI(meta){
+  // actualiza textos si existen
+  const elEstado = document.getElementById("histEstado") || document.getElementById("estadoHistorico");
+  const elRegs  = document.getElementById("histRegistros") || document.getElementById("registrosHistoricos");
+  const elVigs  = document.getElementById("histVigencias") || document.getElementById("vigenciasHistorico");
+  if(elEstado) elEstado.textContent = meta?.loaded ? "Cargado" : "No cargado";
+  if(elRegs) elRegs.textContent = String(meta?.count ?? 0);
+
+  // extrae vigencias si están en los datos
+  if(elVigs && meta?.rows){
+    const set = new Set();
+    for(const r of meta.rows){
+      const v = r.vigencia ?? r.Vigencia ?? r.Año ?? r.anio ?? r.year;
+      if(v!==undefined && v!==null && String(v).trim()!=="") set.add(String(v));
+    }
+    elVigs.textContent = set.size ? Array.from(set).sort().join(", ") : "—";
+  }
+}
+
+function applyLoadedHistoricoRows(rows){
+  // conecta con el motor del visor sin romper la arquitectura
+  window.__canonicalData = rows; // variable "neutral"
+  if(window.state){
+    if(Array.isArray(window.state.canonica)) window.state.canonica = rows;
+    if(Array.isArray(window.state.canonical)) window.state.canonical = rows;
+  }
+  // dispara render si existe
+  if(typeof applyFiltersAndRender === "function") { applyFiltersAndRender(); return; }
+  if(typeof renderAll === "function") { renderAll(); return; }
+  if(typeof render === "function") { render(); return; }
+}
+
+function bindHistoricoButtons(){
+  const btnGuardar = document.getElementById("btnGuardarHistorico") 
+                  || document.getElementById("btnSaveHistorico")
+                  || document.querySelector("[data-action='guardar-historico']");
+  const btnCargar  = document.getElementById("btnCargarHistorico")
+                  || document.getElementById("btnLoadHistorico")
+                  || document.querySelector("[data-action='cargar-historico']");
+  const btnBorrar  = document.getElementById("btnBorrarHistorico")
+                  || document.getElementById("btnClearHistorico")
+                  || document.querySelector("[data-action='borrar-historico']");
+
+  if(btnGuardar){
+    btnGuardar.addEventListener("click", ()=>{
+      const rows = getCanonicalForSave();
+      if(!rows){
+        alert("No hay datos canónicos para guardar. Primero carga archivos y verifica que se procesen.");
+        return;
+      }
+      const ok = historicoSave(rows);
+      updateHistoricoUI({loaded:false, count: rows.length, rows});
+      if(ok) alert("Histórico guardado correctamente. Al volver a abrir el aplicativo se cargará automáticamente.");
+      else alert("No fue posible guardar el histórico (revisa permisos de almacenamiento del navegador).");
+    });
+  }
+
+  if(btnCargar){
+    btnCargar.addEventListener("click", ()=>{
+      const payload = historicoLoad();
+      if(!payload){ alert("No hay histórico guardado."); updateHistoricoUI({loaded:false, count:0}); return; }
+      applyLoadedHistoricoRows(payload.rows);
+      updateHistoricoUI({loaded:true, count: payload.rows.length, rows: payload.rows});
+    });
+  }
+
+  if(btnBorrar){
+    btnBorrar.addEventListener("click", ()=>{
+      if(!confirm("¿Deseas borrar el histórico guardado en este navegador?")) return;
+      historicoClear();
+      updateHistoricoUI({loaded:false, count:0});
+      alert("Histórico borrado.");
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  bindHistoricoButtons();
+
+  // Autocarga al abrir
+  const payload = historicoLoad();
+  if(payload && Array.isArray(payload.rows) && payload.rows.length){
+    applyLoadedHistoricoRows(payload.rows);
+    updateHistoricoUI({loaded:true, count: payload.rows.length, rows: payload.rows});
+  }else{
+    // intenta pintar info si ya había algo en pantalla
+    updateHistoricoUI({loaded:false, count:0});
+  }
+});
+// =================== /HISTÓRICO PERSISTENTE (HUHMP) ===================
+
+
+
+// ===============================
+// Scroll horizontal con la rueda del mouse en tablas
+// (evita texto "remontado" usando barra inferior)
+// ===============================
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.table-wrap').forEach(el => {
+    el.addEventListener('wheel', (evt) => {
+      if (evt.deltaY !== 0 && el.scrollWidth > el.clientWidth) {
+        evt.preventDefault();
+        el.scrollLeft += evt.deltaY;
+      }
+    }, { passive: false });
+  });
+});
+

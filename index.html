@@ -15,11 +15,8 @@
   <header class="topbar">
     <div class="brand">
     <img src="assets/logo-huhmp-blanco.png" alt="Hospital Universitario Hernando Moncaleano Perdomo" class="brand__logo-img" />
-      <div class="brand__logo" aria-hidden="true">HU</div>
-      <div class="brand__text">
-        <div class="brand__title">VISOR COSTOS</div>
-        <div class="brand__subtitle">Histórico 2020–2033 • Migración Power BI → Web</div>
-    </div>
+            <div class="brand__title">VISOR COSTOS</div>
+        </div>
   </div>
 
     <nav class="tabs" role="navigation" aria-label="Menú">
@@ -228,9 +225,140 @@
 
   <footer class="footer">
     <span>HUHMP • Visor de Costos (Web)</span>
-    <span class="muted">Histórico local (IndexedDB) • HTML/CSS/JS</span>
+    <span class="muted"></span>
   </footer>
 
   <script src="./app.js"></script>
+
+<!-- ===== FAB AYUDA (Manual + Paso a paso) ===== -->
+<button id="fabHelp" class="fab-help" type="button" aria-label="Ayuda: manual de uso" title="Manual de uso">
+  <span class="fab-help__icon">?</span>
+</button>
+
+<div id="helpModal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+  <div class="help-modal__backdrop" data-help-close></div>
+  <div class="help-modal__panel" role="document">
+    <div class="help-modal__header">
+      <div>
+        <div id="helpModalTitle" class="help-modal__title">Manual de uso • Visor Costos</div>
+        <div class="help-modal__subtitle">Histórico 2020–2033 • Migración Power BI → Web</div>
+      </div>
+      <button class="help-modal__close" type="button" aria-label="Cerrar" data-help-close>✕</button>
+    </div>
+
+    <div class="help-modal__tabs" role="tablist" aria-label="Secciones de ayuda">
+      <button class="help-tab is-active" type="button" role="tab" aria-selected="true" data-help-tab="manual">Manual</button>
+      <button class="help-tab" type="button" role="tab" aria-selected="false" data-help-tab="paso">Paso a paso</button>
+      <button class="help-tab" type="button" role="tab" aria-selected="false" data-help-tab="glosario">Glosario</button>
+    </div>
+
+    <div class="help-modal__body">
+      <section class="help-pane" data-help-pane="manual">
+        <div class="help-block">
+          <h3>¿Qué es este visor?</h3>
+          <p>Aplicativo web para analizar <b>facturación, costos, utilidad</b> y <b>% de sostenibilidad</b> por Centro de Costo (C.C.), Unidad Funcional (UF), mes y vigencia.</p>
+        </div>
+
+        <div class="help-grid">
+          <div class="help-card">
+            <h4>Filtros</h4>
+            <ul>
+              <li><b>Centro de costo:</b> busca por código o nombre.</li>
+              <li><b>Vigencia / Mes:</b> filtra la ventana de análisis.</li>
+              <li><b>Unidad funcional:</b> agrupa centros por UF.</li>
+              <li><b>Multi-selección:</b> usa <b>Ctrl</b> (Windows) o <b>⌘</b> (Mac).</li>
+            </ul>
+          </div>
+          <div class="help-card">
+            <h4>Interactividad</h4>
+            <ul>
+              <li>Al seleccionar filtros, se actualizan <b>KPIs, gráficos y tablas</b>.</li>
+              <li>Los botones de exportación permiten <b>PDF</b> y <b>Excel</b> según el módulo.</li>
+              <li>“Borrar segmentaciones” restaura los filtros del módulo actual.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-block">
+          <h3>Buenas prácticas</h3>
+          <ul>
+            <li>Aplica primero filtros amplios (vigencia/mes), luego baja a UF y finalmente al C.C.</li>
+            <li>Valida centros con alta facturación y baja utilidad para priorizar acciones.</li>
+            <li>Usa las tablas “Top” para identificar concentraciones de costo o pérdidas.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="help-pane hidden" data-help-pane="paso">
+        <ol class="help-steps">
+          <li>
+            <div class="step-title">1. Cargar información</div>
+            <div class="step-body">En <b>Contenedor histórico / Carga de archivos</b>, selecciona el reporte Excel y espera el mensaje de carga exitosa.</div>
+          </li>
+          <li>
+            <div class="step-title">2. Guardar en histórico (opcional)</div>
+            <div class="step-body">Si deseas conservar la información en tu navegador, usa <b>Guardar al histórico</b>. Luego podrás <b>Cargar histórico</b> en futuras sesiones.</div>
+          </li>
+          <li>
+            <div class="step-title">3. Navegar por módulos</div>
+            <div class="step-body">Usa el menú superior para entrar a <b>E.Resultados Costos</b>, <b>Costos x UF</b>, <b>Comparativo</b> e <b>Indicadores</b>.</div>
+          </li>
+          <li>
+            <div class="step-title">4. Aplicar filtros</div>
+            <div class="step-body">Filtra por <b>vigencia</b>, <b>mes</b> y <b>UF</b>. La vista se actualiza automáticamente.</div>
+          </li>
+          <li>
+            <div class="step-title">5. Interpretar indicadores</div>
+            <div class="step-body">Revisa <b>Facturación</b>, <b>Costo</b>, <b>Utilidad</b> y <b>% Sos</b>. Usa las tablas Top para identificar los principales centros.</div>
+          </li>
+          <li>
+            <div class="step-title">6. Exportar</div>
+            <div class="step-body">Haz clic en <b>PDF</b> o <b>Excel</b> para descargar el reporte del módulo actual.</div>
+          </li>
+          <li>
+            <div class="step-title">7. Restablecer</div>
+            <div class="step-body">Usa <b>Borrar segmentaciones</b> para limpiar filtros y volver a la vista general.</div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="help-pane hidden" data-help-pane="glosario">
+        <div class="help-grid">
+          <div class="help-card">
+            <h4>Facturado</h4>
+            <p>Ingresos asociados al centro de costo en el período seleccionado.</p>
+          </div>
+          <div class="help-card">
+            <h4>Costo</h4>
+            <p>Costos directos e indirectos imputados al centro en el período.</p>
+          </div>
+          <div class="help-card">
+            <h4>Utilidad</h4>
+            <p><b>Facturado − Costo</b>. Positivo (verde) o negativo (alerta).</p>
+          </div>
+          <div class="help-card">
+            <h4>% Sos</h4>
+            <p>Indicador porcentual de sostenibilidad. Valores negativos representan pérdida relativa vs facturación.</p>
+          </div>
+          <div class="help-card">
+            <h4>C.C.</h4>
+            <p>Código de centro de costo (ej. 606).</p>
+          </div>
+          <div class="help-card">
+            <h4>UF</h4>
+            <p>Unidad Funcional que agrupa centros (Urgencias, Hospitalización, UCI, etc.).</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="help-modal__footer">
+      <div class="help-note">Tip: Puedes cerrar con <b>ESC</b>.</div>
+      <button class="help-primary" type="button" data-help-close>Entendido</button>
+    </div>
+  </div>
+</div>
+<!-- ===== /FAB AYUDA ===== -->
+
 </body>
 </html>
